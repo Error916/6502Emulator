@@ -36,6 +36,29 @@ void mem_write_u16(CPU *cpu, uint16_t add, uint16_t data) {
 	mem_write(cpu, add + 1, hi);
 }
 
+uint8_t stack_pop(CPU *cpu) {
+	cpu->stack_pointer += 1;
+	return mem_read(cpu, (uint16_t) STACK + (uint16_t) cpu->stack_pointer);
+}
+
+uint16_t stack_pop_u16(CPU *cpu) {
+	uint16_t lo = (uint16_t) stack_pop(cpu);
+	uint16_t hi = (uint16_t) stack_pop(cpu);
+	return (hi << 8) | ((uint16_t) lo);
+}
+
+void stack_push(CPU *cpu, uint8_t data) {
+	mem_write(cpu, (uint16_t) STACK + (uint16_t) cpu->stack_pointer, data);
+	cpu->stack_pointer -= 1;
+}
+
+void stack_push_u16(CPU *cpu, uint16_t data) {
+	uint8_t hi = (uint8_t) (data >> 8);
+	uint8_t lo = (uint8_t) (data & 0xFF);
+	stack_push(cpu, lo);
+	stack_push(cpu, hi);
+}
+
 uint16_t get_operand_address(CPU *cpu, AddressingMode mode) {
 	switch (mode) {
 		case Immediate:
@@ -239,8 +262,24 @@ void run(CPU *cpu) {
 				sty(cpu, opcode.mode);
 			break;
 
-			/* NOP */
-			case 0xEA:
+			/* PHA */
+			case 0x48:
+				pha(cpu);
+			break;
+
+                	/* PLA */
+			case 0x68:
+                    		pla(cpu);
+			break;
+
+			/* PHP */
+			case 0x08:
+				php(cpu);
+			break;
+
+			/* PLP */
+			case 0x28:
+				plp(cpu);
 			break;
 
 			/* TAX */
@@ -251,6 +290,10 @@ void run(CPU *cpu) {
 			/* INX */
 			case 0xE8:
 				inx(cpu);
+			break;
+
+			/* NOP */
+			case 0xEA:
 			break;
 
 			/* BRK */
@@ -372,4 +415,28 @@ void stx(CPU *cpu, AddressingMode mode) {
 void sty(CPU *cpu, AddressingMode mode) {
 	uint16_t addr = get_operand_address(cpu, mode);
 	mem_write(cpu, addr, cpu->register_y);
+}
+
+/* Stack */
+void pha(CPU *cpu) {
+	stack_push(cpu, cpu->register_a);
+}
+
+void pla(CPU *cpu) {
+	cpu->register_a = stack_pop(cpu);
+	update_zero_and_negative_flag(cpu, cpu->register_a);
+}
+
+void php(CPU *cpu) {
+	//http://wiki.nesdev.com/w/index.php/CPU_status_flag_behavior
+	uint8_t status = cpu->status;
+	status |= BREAK;
+	status |= BREAK2;
+	stack_push(cpu, status);
+}
+
+void plp(CPU *cpu) {
+	cpu->status = stack_pop(cpu);
+	cpu->status &= ~BREAK;
+	cpu->status |= BREAK2;
 }

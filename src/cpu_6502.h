@@ -67,6 +67,11 @@ uint16_t mem_read_u16(CPU *cpu, uint16_t add);
 void mem_write(CPU *cpu, uint16_t add, uint8_t data);
 void mem_write_u16(CPU *cpu, uint16_t add, uint16_t data);
 
+uint8_t stack_pop(CPU *cpu);
+uint16_t stack_pop_u16(CPU *cpu);
+void stack_push(CPU *cpu, uint8_t data);
+void stack_push_u16(CPU *cpu, uint16_t data);
+
 uint16_t get_operand_address(CPU *cpu, AddressingMode mode);
 
 void load_and_run(CPU *cpu, uint8_t *program, size_t len);
@@ -94,6 +99,12 @@ void sta(CPU *cpu, AddressingMode mode);
 void stx(CPU *cpu, AddressingMode mode);
 void sty(CPU *cpu, AddressingMode mode);
 
+/* Stack */
+void pha(CPU *cpu);
+void pla(CPU *cpu);
+void php(CPU *cpu);
+void plp(CPU *cpu);
+
 static const OPCODE opcode_lookup_table[256] = {
 	{ 0x00, "BRK", 1, 7, NoneAddressing },
 	{ 0x01, "ORA", 2, 6, Indirect_X },
@@ -103,7 +114,7 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0x05, "ORA", 2, 3, ZeroPage },
 	{ 0 },
 	{ 0 },
-	{ 0 },
+	{ 0x08, "PHP", 1, 3, NoneAddressing },
 	{ 0x09, "ORA", 2, 2, Immediate },
 	{ 0 },
 	{ 0 },
@@ -135,7 +146,7 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0x25, "AND", 2, 3, ZeroPage },
 	{ 0 },
 	{ 0 },
-	{ 0 },
+	{ 0x28, "PLP", 1, 4, NoneAddressing },
 	{ 0x29, "AND", 2, 2, Immediate },
 	{ 0 },
 	{ 0 },
@@ -167,7 +178,7 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0x45, "EOR", 2, 3, ZeroPage },
 	{ 0 },
 	{ 0 },
-	{ 0 },
+	{ 0x48, "PHA", 1, 3, NoneAddressing },
 	{ 0x49, "EOR", 2, 2, Immediate },
 	{ 0 },
 	{ 0 },
@@ -199,7 +210,7 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0x65, "ADC", 2, 3, ZeroPage },
 	{ 0 },
 	{ 0 },
-	{ 0 },
+	{ 0x68, "PLA", 1, 4, NoneAddressing },
 	{ 0x69, "ADC", 2, 2, Immediate },
 	{ 0 },
 	{ 0 },
