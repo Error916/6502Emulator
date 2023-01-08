@@ -80,7 +80,6 @@ void reset(CPU *cpu);
 void run(CPU *cpu);
 
 void update_zero_and_negative_flag(CPU *cpu, uint8_t res);
-void tax(CPU *cpu);
 void inx(CPU *cpu);
 
 /* Arithmetic */
@@ -104,6 +103,22 @@ void pha(CPU *cpu);
 void pla(CPU *cpu);
 void php(CPU *cpu);
 void plp(CPU *cpu);
+
+/* Flags clear */
+void cld(CPU *cpu);
+void cli(CPU *cpu);
+void clv(CPU *cpu);
+void clc(CPU *cpu);
+void sec(CPU *cpu);
+void sei(CPU *cpu);
+void sed(CPU *cpu);
+
+void tax(CPU *cpu);
+void tay(CPU *cpu);
+void tsx(CPU *cpu);
+void txa(CPU *cpu);
+void txs(CPU *cpu);
+void tya(CPU *cpu);
 
 static const OPCODE opcode_lookup_table[256] = {
 	{ 0x00, "BRK", 1, 7, NoneAddressing },
@@ -130,7 +145,7 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0x15, "ORA", 2, 4, ZeroPage_X },
 	{ 0 },
 	{ 0 },
-	{ 0 },
+	{ 0x18, "CLC", 1, 2, NoneAddressing },
 	{ 0x19, "ORA", 3, 4 /* +1 if page crossed */, Absolute_Y },
 	{ 0 },
 	{ 0 },
@@ -162,7 +177,7 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0x35, "AND", 2, 4, ZeroPage_X },
 	{ 0 },
 	{ 0 },
-	{ 0 },
+	{ 0x38, "SEC", 1, 2, NoneAddressing },
 	{ 0x39, "AND", 3, 4 /* +1 if page crossed */, Absolute_Y },
 	{ 0 },
 	{ 0 },
@@ -194,7 +209,7 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0x55, "EOR", 2, 4, ZeroPage_X },
 	{ 0 },
 	{ 0 },
-	{ 0 },
+	{ 0x58, "CLI", 1, 2, NoneAddressing },
 	{ 0x59, "EOR", 3, 4 /* +1 if page crossed */, Absolute_Y },
 	{ 0 },
 	{ 0 },
@@ -226,7 +241,7 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0x75, "ADC", 2, 4, ZeroPage_X },
 	{ 0 },
 	{ 0 },
-	{ 0 },
+	{ 0x78, "SEI", 1, 2, NoneAddressing },
 	{ 0x79, "ADC", 3, 4 /* +1 if page crossed */, Absolute_Y },
 	{ 0 },
 	{ 0 },
@@ -244,7 +259,7 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0 },
 	{ 0 },
 	{ 0 },
-	{ 0 },
+	{ 0x8A, "TXA", 1, 2, NoneAddressing },
 	{ 0 },
 	{ 0x8C, "STY", 3, 4, Absolute },
 	{ 0x8D, "STA", 3, 4, Absolute },
@@ -258,9 +273,9 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0x95, "STA", 2, 4, ZeroPage_X },
 	{ 0x96, "STX", 2, 4, ZeroPage_Y },
 	{ 0 },
-	{ 0 },
+	{ 0x98, "TYA", 1, 2, NoneAddressing },
 	{ 0x99, "STA", 3, 5, Absolute_Y },
-	{ 0 },
+	{ 0x9A, "TXS", 1, 2, NoneAddressing },
 	{ 0 },
 	{ 0 },
 	{ 0x9D, "STA", 3, 5, Absolute_X },
@@ -274,7 +289,7 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0xA5, "LDA", 2, 3, ZeroPage },
 	{ 0xA6, "LDX", 2, 3, ZeroPage },
 	{ 0 },
-	{ 0 },
+	{ 0xA8, "TAY", 1, 2, NoneAddressing },
 	{ 0xA9, "LDA", 2, 2, Immediate },
 	{ 0xAA, "TAX", 1, 2, NoneAddressing },
 	{ 0 },
@@ -290,9 +305,9 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0xB5, "LDA", 2, 4, ZeroPage_X },
 	{ 0xB6, "LDX", 2, 4, ZeroPage_Y },
 	{ 0 },
-	{ 0 },
+	{ 0xB8, "CLV", 1, 2, NoneAddressing },
 	{ 0xB9, "LDA", 3, 4 /* +1 if page crossed */, Absolute_Y },
-	{ 0 },
+	{ 0xBA, "TSX", 1, 2, NoneAddressing },
 	{ 0 },
 	{ 0xBC, "LDY", 3, 4 /* +1 if page crossed */, Absolute_X },
 	{ 0xBD, "LDA", 3, 4 /* +1 if page crossed */, Absolute_X },
@@ -322,7 +337,7 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0 },
 	{ 0 },
 	{ 0 },
-	{ 0 },
+	{ 0xD8, "CLD", 1, 2, NoneAddressing },
 	{ 0 },
 	{ 0 },
 	{ 0 },
@@ -354,7 +369,7 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0xF5, "SBC", 2, 4, ZeroPage_X },
 	{ 0 },
 	{ 0 },
-	{ 0 },
+	{ 0xF8, "SED", 1, 2, NoneAddressing },
 	{ 0xF9, "SBC", 3, 4 /* +1 if page crossed */, Absolute_Y },
 	{ 0 },
 	{ 0 },

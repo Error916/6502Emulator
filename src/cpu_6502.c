@@ -282,9 +282,69 @@ void run(CPU *cpu) {
 				plp(cpu);
 			break;
 
+                	/* CLD */
+			case 0xd8:
+				cld(cpu);
+			break;
+
+                	/* CLI */
+			case 0x58:
+				cli(cpu);
+			break;
+
+                	/* CLV */
+			case 0xb8:
+				clv(cpu);
+			break;
+
+                	/* CLC */
+			case 0x18:
+				clc(cpu);
+			break;
+
+                	/* SEC */
+			case 0x38:
+				sec(cpu);
+			break;
+
+                	/* SEI */
+			case 0x78:
+				sei(cpu);
+			break;
+
+                	/* SED */
+			case 0xf8:
+				sed(cpu);
+			break;
+
 			/* TAX */
 			case 0xAA:
 				tax(cpu);
+			break;
+
+			/* TAY */
+			case 0xA8:
+				tay(cpu);
+			break;
+
+			/* TSX */
+			case 0xBA:
+				tsx(cpu);
+			break;
+
+			/* TXA */
+			case 0x8A:
+				txa(cpu);
+			break;
+
+			/* TXS */
+			case 0x9A:
+				txs(cpu);
+			break;
+
+			/* TYA */
+			case 0x98:
+				tya(cpu);
 			break;
 
 			/* INX */
@@ -323,11 +383,6 @@ void update_zero_and_negative_flag(CPU *cpu, uint8_t res) {
 	} else {
 		cpu->status &= ~NEGATIV;
 	}
-}
-
-void tax(CPU *cpu) {
-	cpu->register_x = cpu->register_a;
-	update_zero_and_negative_flag(cpu, cpu->register_x);
 }
 
 void inx(CPU *cpu) {
@@ -440,3 +495,63 @@ void plp(CPU *cpu) {
 	cpu->status &= ~BREAK;
 	cpu->status |= BREAK2;
 }
+
+/* Flags clear */
+void cld(CPU *cpu) {
+	cpu->status &= ~DECIMAL_MODE;
+}
+
+void cli(CPU *cpu) {
+	cpu->status &= ~INTERRUPT_DISABLE;
+}
+
+void clv(CPU *cpu) {
+	cpu->status &= ~OVERFLOW;
+}
+
+void clc(CPU *cpu) {
+	cpu->status &= ~CARRY;
+}
+
+void sec(CPU *cpu) {
+	cpu->status |= CARRY;
+}
+
+void sei(CPU *cpu) {
+	cpu->status |= INTERRUPT_DISABLE;
+}
+
+void sed(CPU *cpu) {
+	cpu->status |= DECIMAL_MODE;
+}
+
+
+void tax(CPU *cpu) {
+	cpu->register_x = cpu->register_a;
+	update_zero_and_negative_flag(cpu, cpu->register_x);
+}
+
+void tay(CPU *cpu) {
+	cpu->register_y = cpu->register_a;
+	update_zero_and_negative_flag(cpu, cpu->register_y);
+}
+
+void tsx(CPU *cpu) {
+	cpu->register_x = cpu->stack_pointer;
+	update_zero_and_negative_flag(cpu, cpu->register_x);
+}
+
+void txa(CPU *cpu) {
+	cpu->register_a = cpu->register_x;
+	update_zero_and_negative_flag(cpu, cpu->register_a);
+}
+
+void txs(CPU *cpu) {
+	cpu->stack_pointer = cpu->register_x;
+}
+
+void tya(CPU *cpu) {
+	cpu->register_a = cpu->register_y;
+	update_zero_and_negative_flag(cpu, cpu->register_a);
+}
+
