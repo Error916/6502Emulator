@@ -196,6 +196,24 @@ void run(CPU *cpu) {
 				lda(cpu, opcode.mode);
 			break;
 
+			/* LDX */
+			case 0xa2:
+			case 0xa6:
+			case 0xb6:
+			case 0xae:
+			case 0xbe:
+				ldx(cpu, opcode.mode);
+			break;
+
+                	/* LDY */
+			case 0xa0:
+			case 0xa4:
+			case 0xb4:
+			case 0xac:
+			case 0xbc:
+				ldy(cpu, opcode.mode);
+			break;
+
 			/* STA */
 			case 0x85:
 			case 0x95:
@@ -205,6 +223,20 @@ void run(CPU *cpu) {
 			case 0x81:
 			case 0x91:
 				sta(cpu, opcode.mode);
+			break;
+
+			/* STX */
+			case 0x86:
+			case 0x96:
+			case 0x8e:
+				stx(cpu, opcode.mode);
+			break;
+
+			/* STY */
+			case 0x84:
+			case 0x94:
+			case 0x8c:
+				sty(cpu, opcode.mode);
 			break;
 
 			/* NOP */
@@ -238,29 +270,16 @@ void run(CPU *cpu) {
 
 void update_zero_and_negative_flag(CPU *cpu, uint8_t res) {
 	if (res) {
-		cpu->status = cpu->status & (uint8_t) 0xFD; // 0b11111101
+		cpu->status &= ~ZERO;
 	} else {
-		cpu->status = cpu->status | (uint8_t) 0x02; // 0b00000010
+		cpu->status |= ZERO;
 	}
 
-	if (res & (uint8_t) 0x80) {
-		cpu->status = cpu->status | (uint8_t) 0x80; // 0b10000000
+	if (res & NEGATIV) {
+		cpu->status |= NEGATIV;
 	} else {
-		cpu->status = cpu->status & (uint8_t) 0x7F; // 0b01111111
+		cpu->status &= ~NEGATIV;
 	}
-}
-
-void lda(CPU *cpu, AddressingMode mode) {
-	uint16_t addr = get_operand_address(cpu, mode);
-	uint8_t value = mem_read(cpu, addr);
-
-	cpu->register_a = value;
-	update_zero_and_negative_flag(cpu, cpu->register_a);
-}
-
-void sta(CPU *cpu, AddressingMode mode) {
-	uint16_t addr = get_operand_address(cpu, mode);
-	mem_write(cpu, addr, cpu->register_a);
 }
 
 void tax(CPU *cpu) {
@@ -319,4 +338,38 @@ void eor(CPU *cpu, AddressingMode mode) {
 void ora(CPU *cpu, AddressingMode mode) {
 	uint8_t value = mem_read(cpu, get_operand_address(cpu, mode));
 	add_to_register_a(cpu, value | cpu->register_a);
+}
+
+/* Stores, Loads */
+void lda(CPU *cpu, AddressingMode mode) {
+	uint8_t value = mem_read(cpu, get_operand_address(cpu, mode));
+	cpu->register_a = value;
+	update_zero_and_negative_flag(cpu, cpu->register_a);
+}
+
+void ldx(CPU *cpu, AddressingMode mode) {
+	uint8_t value = mem_read(cpu, get_operand_address(cpu, mode));
+	cpu->register_x = value;
+	update_zero_and_negative_flag(cpu, cpu->register_x);
+}
+
+void ldy(CPU *cpu, AddressingMode mode) {
+	uint8_t value = mem_read(cpu, get_operand_address(cpu, mode));
+	cpu->register_y = value;
+	update_zero_and_negative_flag(cpu, cpu->register_y);
+}
+
+void sta(CPU *cpu, AddressingMode mode) {
+	uint16_t addr = get_operand_address(cpu, mode);
+	mem_write(cpu, addr, cpu->register_a);
+}
+
+void stx(CPU *cpu, AddressingMode mode) {
+	uint16_t addr = get_operand_address(cpu, mode);
+	mem_write(cpu, addr, cpu->register_x);
+}
+
+void sty(CPU *cpu, AddressingMode mode) {
+	uint16_t addr = get_operand_address(cpu, mode);
+	mem_write(cpu, addr, cpu->register_y);
 }

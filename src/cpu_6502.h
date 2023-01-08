@@ -75,8 +75,6 @@ void reset(CPU *cpu);
 void run(CPU *cpu);
 
 void update_zero_and_negative_flag(CPU *cpu, uint8_t res);
-void lda(CPU *cpu, AddressingMode mode);
-void sta(CPU *cpu, AddressingMode mode);
 void tax(CPU *cpu);
 void inx(CPU *cpu);
 
@@ -87,6 +85,14 @@ void sbc(CPU *cpu, AddressingMode mode);
 void and(CPU *cpu, AddressingMode mode);
 void eor(CPU *cpu, AddressingMode mode);
 void ora(CPU *cpu, AddressingMode mode);
+
+/* Stores, Loads */
+void lda(CPU *cpu, AddressingMode mode);
+void ldx(CPU *cpu, AddressingMode mode);
+void ldy(CPU *cpu, AddressingMode mode);
+void sta(CPU *cpu, AddressingMode mode);
+void stx(CPU *cpu, AddressingMode mode);
+void sty(CPU *cpu, AddressingMode mode);
 
 static const OPCODE opcode_lookup_table[256] = {
 	{ 0x00, "BRK", 1, 7, NoneAddressing },
@@ -221,25 +227,25 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0x81, "STA", 2, 6, Indirect_X },
 	{ 0 },
 	{ 0 },
-	{ 0 },
+	{ 0x84, "STY", 2, 3, ZeroPage },
 	{ 0x85, "STA", 2, 3, ZeroPage },
+	{ 0x86, "STX", 2, 3, ZeroPage },
 	{ 0 },
 	{ 0 },
 	{ 0 },
 	{ 0 },
 	{ 0 },
-	{ 0 },
-	{ 0 },
+	{ 0x8C, "STY", 3, 4, Absolute },
 	{ 0x8D, "STA", 3, 4, Absolute },
-	{ 0 },
+	{ 0x8E, "STX", 3, 4, Absolute },
 	{ 0 },
 	{ 0 },
 	{ 0x91, "STA", 2, 6, Indirect_Y },
 	{ 0 },
 	{ 0 },
-	{ 0 },
+	{ 0x94, "STY", 2, 4, ZeroPage_X },
 	{ 0x95, "STA", 2, 4, ZeroPage_X },
-	{ 0 },
+	{ 0x96, "STX", 2, 4, ZeroPage_Y },
 	{ 0 },
 	{ 0 },
 	{ 0x99, "STA", 3, 5, Absolute_Y },
@@ -249,37 +255,37 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0x9D, "STA", 3, 5, Absolute_X },
 	{ 0 },
 	{ 0 },
-	{ 0 },
+	{ 0xA0, "LDY", 2, 2, Immediate },
 	{ 0xA1, "LDA", 2, 6, Indirect_X},
+	{ 0xA2, "LDX", 2, 2, Immediate },
 	{ 0 },
-	{ 0 },
-	{ 0 },
+	{ 0xA4, "LDY", 2, 3, ZeroPage },
 	{ 0xA5, "LDA", 2, 3, ZeroPage },
-	{ 0 },
+	{ 0xA6, "LDX", 2, 3, ZeroPage },
 	{ 0 },
 	{ 0 },
 	{ 0xA9, "LDA", 2, 2, Immediate },
 	{ 0xAA, "TAX", 1, 2, NoneAddressing },
 	{ 0 },
-	{ 0 },
+	{ 0xAC, "LDY", 3, 4, Absolute },
 	{ 0xAD, "LDA", 3, 4, Absolute },
-	{ 0 },
+	{ 0xAE, "LDX", 3, 4, Absolute },
 	{ 0 },
 	{ 0 },
 	{ 0xB1, "LDA", 2, 5 /* +1 if page crossed */, Indirect_Y },
 	{ 0 },
 	{ 0 },
-	{ 0 },
+	{ 0xB4, "LDY", 2, 4, ZeroPage_X },
 	{ 0xB5, "LDA", 2, 4, ZeroPage_X },
-	{ 0 },
+	{ 0xB6, "LDX", 2, 4, ZeroPage_Y },
 	{ 0 },
 	{ 0 },
 	{ 0xB9, "LDA", 3, 4 /* +1 if page crossed */, Absolute_Y },
 	{ 0 },
 	{ 0 },
-	{ 0 },
+	{ 0xBC, "LDY", 3, 4 /* +1 if page crossed */, Absolute_X },
 	{ 0xBD, "LDA", 3, 4 /* +1 if page crossed */, Absolute_X },
-	{ 0 },
+	{ 0xBE, "LDX", 3, 4 /* +1 if page crossed */, Absolute_Y },
 	{ 0 },
 	{ 0 },
 	{ 0 },

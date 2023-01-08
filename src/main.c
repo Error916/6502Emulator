@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
 	(void) argc;
 	(void) argv;
 
-	uint8_t program[] = { 0x00 };
+	uint8_t program[] = { 0xa9, 0xc0, 0xaa, 0xe8, 0x00 };
 	size_t len = sizeof(program) / sizeof(program[0]);
 	CPU cpu;
 
