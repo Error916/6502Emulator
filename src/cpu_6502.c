@@ -4,8 +4,9 @@ void createCPU(CPU *cpu) {
 	cpu->register_a = 0;
 	cpu->register_x = 0;
 	cpu->register_y = 0;
-	cpu->status = 0;
+	cpu->status = NEGATIV | INTERRUPT_DISABLE;
 	cpu->program_counter = 0;
+	cpu->stack_pointer = STACK_RESET;
 	memset(cpu->memory, 0, 0xFFFF);
 }
 
@@ -109,8 +110,8 @@ void reset(CPU *cpu) {
 	cpu->register_a = 0;
 	cpu->register_x = 0;
 	cpu->register_y = 0;
-	cpu->status = 0;
-
+	cpu->status = NEGATIV | INTERRUPT_DISABLE;
+	cpu->stack_pointer = STACK_RESET;
 	cpu->program_counter = mem_read_u16(cpu, 0xFFFC);
 }
 
@@ -123,6 +124,67 @@ void run(CPU *cpu) {
 		OPCODE opcode = opcode_lookup_table[code];
 
 		switch (code) {
+			/* ADC */
+			case 0x69:
+			case 0x65:
+			case 0x75:
+			case 0x6D:
+			case 0x7D:
+			case 0x79:
+			case 0x61:
+			case 0x71:
+                		adc(cpu, opcode.mode);
+			break;
+
+                	/* SBC */
+			case 0xE9:
+			case 0xE5:
+			case 0xF5:
+			case 0xED:
+			case 0xFD:
+			case 0xF9:
+			case 0xE1:
+			case 0xF1:
+                		sbc(cpu, opcode.mode);
+			break;
+
+                	/* AND */
+			case 0x29:
+			case 0x25:
+			case 0x35:
+			case 0x2D:
+			case 0x3D:
+			case 0x39:
+			case 0x21:
+			case 0x31:
+                		and(cpu, opcode.mode);
+			break;
+
+                	/* EOR */
+			case 0x49:
+			case 0x45:
+			case 0x55:
+			case 0x4D:
+			case 0x5D:
+			case 0x59:
+			case 0x41:
+			case 0x51:
+                		eor(cpu, opcode.mode);
+			break;
+
+	                /* ORA */
+			case 0x09:
+			case 0x05:
+			case 0x15:
+			case 0x0D:
+			case 0x1D:
+			case 0x19:
+			case 0x01:
+			case 0x11:
+                    		ora(cpu, opcode.mode);
+                	break;
+
+			/* LDA */
 			case 0xA9:
 			case 0xA5:
 			case 0xB5:
@@ -134,6 +196,7 @@ void run(CPU *cpu) {
 				lda(cpu, opcode.mode);
 			break;
 
+			/* STA */
 			case 0x85:
 			case 0x95:
 			case 0x8D:
@@ -144,14 +207,21 @@ void run(CPU *cpu) {
 				sta(cpu, opcode.mode);
 			break;
 
+			/* NOP */
+			case 0xEA:
+			break;
+
+			/* TAX */
 			case 0xAA:
 				tax(cpu);
 			break;
 
+			/* INX */
 			case 0xE8:
 				inx(cpu);
 			break;
 
+			/* BRK */
 			case 0x00:
 				return;
 			break;
@@ -201,4 +271,52 @@ void tax(CPU *cpu) {
 void inx(CPU *cpu) {
 	cpu->register_x += 1;
 	update_zero_and_negative_flag(cpu, cpu->register_x);
+}
+
+/* Arithmetic */
+/// note: ignoring decimal mode
+/// http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
+void add_to_register_a(CPU *cpu, uint8_t data) {
+	uint16_t sum = (uint16_t) cpu->register_a + (uint16_t) data + (uint16_t) (cpu->status & CARRY) ? 1 : 0;
+
+	if (sum > 0xFF) {
+		cpu->status |= CARRY;
+	} else {
+		cpu->status &= ~CARRY;
+	}
+
+	uint8_t res = (uint8_t) sum;
+	if ((data ^ res) & (res ^ cpu->register_a) & 0x80) {
+		cpu->status &= ~OVERFLOW;
+	} else {
+		cpu->status |= OVERFLOW;
+	}
+
+	cpu->register_a = res;
+	update_zero_and_negative_flag(cpu, cpu->register_a);
+}
+
+void adc(CPU *cpu, AddressingMode mode) {
+	uint8_t value = mem_read(cpu, get_operand_address(cpu, mode));
+	add_to_register_a(cpu, value);
+}
+
+void sbc(CPU *cpu, AddressingMode mode) {
+	uint8_t value = mem_read(cpu, get_operand_address(cpu, mode));
+	add_to_register_a(cpu, (uint8_t) (int8_t) (value - 1));
+}
+
+void and(CPU *cpu, AddressingMode mode) {
+	uint8_t value = mem_read(cpu, get_operand_address(cpu, mode));
+	add_to_register_a(cpu, value & cpu->register_a);
+}
+
+void eor(CPU *cpu, AddressingMode mode) {
+	uint8_t value = mem_read(cpu, get_operand_address(cpu, mode));
+	add_to_register_a(cpu, value ^ cpu->register_a);
+}
+
+void ora(CPU *cpu, AddressingMode mode) {
+	uint8_t value = mem_read(cpu, get_operand_address(cpu, mode));
+	add_to_register_a(cpu, value | cpu->register_a);
 }
