@@ -347,6 +347,77 @@ void run(CPU *cpu) {
 				tya(cpu);
 			break;
 
+			/* JMP Absolute */
+			case 0x4c:
+				jmp_absolute(cpu);
+			break;
+
+			/* JMP Indirect */
+			case 0x6c:
+				jmp_indirect(cpu);
+			break;
+
+			/* JSR */
+			case 0x20:
+				jsr(cpu);
+			break;
+
+			/* RTS */
+			case 0x60:
+				rts(cpu);
+			break;
+
+			/* RTI */
+			case 0x40:
+				rti(cpu);
+			break;
+
+			/* BNE */
+			case 0xd0:
+				bne(cpu);
+			break;
+
+			/* BVS */
+			case 0x70:
+				bvs(cpu);
+			break;
+
+			/* BVC */
+			case 0x50:
+				bvc(cpu);
+			break;
+
+			/* BPL */
+			case 0x10:
+				bpl(cpu);
+			break;
+
+			/* BMI */
+			case 0x30:
+				bmi(cpu);
+			break;
+
+			/* BEQ */
+			case 0xf0:
+				beq(cpu);
+			break;
+
+			/* BCS */
+			case 0xb0:
+				bcs(cpu);
+			break;
+
+			/* BCC */
+			case 0x90:
+				bcc(cpu);
+			break;
+
+			/* BIT */
+			case 0x24:
+			case 0x2c:
+				bit(cpu, opcode.mode);
+			break;
+
 			/* INX */
 			case 0xE8:
 				inx(cpu);
@@ -555,3 +626,99 @@ void tya(CPU *cpu) {
 	update_zero_and_negative_flag(cpu, cpu->register_a);
 }
 
+/* Branching */
+void jmp_absolute(CPU *cpu) {
+	uint16_t addr = mem_read_u16(cpu, cpu->program_counter);
+	cpu->program_counter = addr;
+}
+
+void jmp_indirect(CPU *cpu) {
+	uint16_t addr = mem_read_u16(cpu, cpu->program_counter);
+        // 6502 bug mode with with page boundary:
+        //  if address $3000 contains $40, $30FF contains $80, and $3100 contains $50,
+        //  the result of JMP ($30FF) will be a transfer of control to $4080 rather than $5080 as you intended
+        //  i.e. the 6502 took the low byte of the address from $30FF and the high byte from $3000
+	uint16_t ind_ref;
+	if ((addr & 0x00FF) == 0x00FF) {
+		uint8_t lo = mem_read(cpu, addr);
+		uint8_t hi = mem_read(cpu, addr & 0xFF00);
+		ind_ref = ((uint16_t) hi) << 8 | (uint16_t) lo;
+	} else {
+		ind_ref = mem_read_u16(cpu, addr);
+	}
+
+	cpu->program_counter = ind_ref;
+}
+
+void jsr(CPU *cpu) {
+	stack_push_u16(cpu, cpu->program_counter + 2 - 1);
+	uint16_t target_addr = mem_read_u16(cpu, cpu->program_counter);
+	cpu->program_counter = target_addr;
+}
+
+void rts(CPU *cpu) {
+	cpu->program_counter = stack_pop_u16(cpu) + 1;
+}
+
+void rti(CPU *cpu) {
+	// plp call
+	cpu->status = stack_pop(cpu);
+	cpu->status &= ~BREAK;
+	cpu->status |= BREAK2;
+
+	cpu->program_counter = stack_pop_u16(cpu);
+}
+
+void branch(CPU *cpu, uint8_t cond) {
+	if (cond) {
+		int8_t jump = (int8_t) mem_read(cpu, cpu->program_counter);
+		uint16_t jump_addr = cpu->program_counter + 1 + (uint16_t) jump;
+
+		cpu->program_counter = jump_addr;
+	}
+}
+
+void bne(CPU *cpu) {
+	branch(cpu, !(cpu->status & ZERO));
+}
+
+void bvs(CPU *cpu) {
+	branch(cpu, (cpu->status & OVERFLOW));
+}
+
+void bvc(CPU *cpu) {
+	branch(cpu, !(cpu->status & OVERFLOW));
+}
+
+void bmi(CPU *cpu) {
+	branch(cpu, (cpu->status & NEGATIV));
+}
+
+void beq(CPU *cpu) {
+	branch(cpu, (cpu->status & ZERO));
+}
+
+void bcs(CPU *cpu) {
+	branch(cpu, (cpu->status & CARRY));
+}
+
+void bcc(CPU *cpu) {
+	branch(cpu, !(cpu->status & CARRY));
+}
+
+void bpl(CPU *cpu) {
+	branch(cpu, !(cpu->status & NEGATIV));
+}
+
+void bit(CPU *cpu, AddressingMode mode) {
+	uint16_t addr = get_operand_address(cpu, mode);
+	uint8_t data = mem_read(cpu, addr);
+	if (cpu->register_a & data) {
+		cpu->status &= ~ZERO;
+	} else {
+		cpu->status |= ZERO;
+	}
+
+	if (data & NEGATIV) cpu->status |= NEGATIV;
+	if (data & OVERFLOW) cpu->status |= OVERFLOW;
+}

@@ -120,6 +120,25 @@ void txa(CPU *cpu);
 void txs(CPU *cpu);
 void tya(CPU *cpu);
 
+/* Branching */
+void jmp_absolute(CPU *cpu);
+void jmp_indirect(CPU *cpu);
+void jsr(CPU *cpu);
+void rts(CPU *cpu);
+void rti(CPU *cpu);
+
+void branch(CPU *cpu, uint8_t cond);
+void bne(CPU *cpu);
+void bvs(CPU *cpu);
+void bvc(CPU *cpu);
+void bmi(CPU *cpu);
+void beq(CPU *cpu);
+void bcs(CPU *cpu);
+void bcc(CPU *cpu);
+void bpl(CPU *cpu);
+
+void bit(CPU *cpu, AddressingMode mode);
+
 static const OPCODE opcode_lookup_table[256] = {
 	{ 0x00, "BRK", 1, 7, NoneAddressing },
 	{ 0x01, "ORA", 2, 6, Indirect_X },
@@ -131,7 +150,7 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0 },
 	{ 0x08, "PHP", 1, 3, NoneAddressing },
 	{ 0x09, "ORA", 2, 2, Immediate },
-	{ 0 },
+	{ 0x10, "BPL", 2, 2 /* +1 if branch succeeds +2 if to a new page */, NoneAddressing },
 	{ 0 },
 	{ 0 },
 	{ 0x0D, "ORA", 3, 4, Absolute },
@@ -147,7 +166,7 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0 },
 	{ 0x18, "CLC", 1, 2, NoneAddressing },
 	{ 0x19, "ORA", 3, 4 /* +1 if page crossed */, Absolute_Y },
-	{ 0 },
+	{ 0x20, "JSR", 3, 6, NoneAddressing },
 	{ 0 },
 	{ 0 },
 	{ 0x1D, "ORA", 3, 4 /* +1 if page crossed */, Absolute_X },
@@ -157,7 +176,7 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0x21, "AND", 2, 6, Indirect_X },
 	{ 0 },
 	{ 0 },
-	{ 0 },
+	{ 0x24, "BIT", 2, 3, ZeroPage },
 	{ 0x25, "AND", 2, 3, ZeroPage },
 	{ 0 },
 	{ 0 },
@@ -165,11 +184,11 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0x29, "AND", 2, 2, Immediate },
 	{ 0 },
 	{ 0 },
-	{ 0 },
+	{ 0x2C, "BIT", 3, 4, Absolute },
 	{ 0x2D, "AND", 3, 4, Absolute },
 	{ 0 },
 	{ 0 },
-	{ 0 },
+	{ 0x30, "BMI", 2, 2 /* +1 if branch succeeds +2 if to a new page */, NoneAddressing },
 	{ 0x31, "AND", 2, 5 /* +1 if page crossed */, Indirect_Y },
 	{ 0 },
 	{ 0 },
@@ -185,7 +204,7 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0x3D, "AND", 3, 4 /* +1 if page crossed */, Absolute_X },
 	{ 0 },
 	{ 0 },
-	{ 0 },
+	{ 0x40, "RTI", 1, 6, NoneAddressing },
 	{ 0x41, "EOR", 2, 6, Indirect_X },
 	{ 0 },
 	{ 0 },
@@ -197,11 +216,11 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0x49, "EOR", 2, 2, Immediate },
 	{ 0 },
 	{ 0 },
-	{ 0 },
+	{ 0x4C, "JMP", 3, 3, NoneAddressing }, //AddressingMode that acts as Immidiate
 	{ 0x4D, "EOR", 3, 4, Absolute },
 	{ 0 },
 	{ 0 },
-	{ 0 },
+	{ 0x50, "BVC", 2, 2 /* +1 if branch succeeds +2 if to a new page */, NoneAddressing },
 	{ 0x51, "EOR", 2, 5 /* +1 if page crossed */, Indirect_Y },
 	{ 0 },
 	{ 0 },
@@ -217,7 +236,7 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0x5D, "EOR", 3, 4 /* +1 if page crossed */, Absolute_X},
 	{ 0 },
 	{ 0 },
-	{ 0 },
+	{ 0x60, "RTS", 1, 6, NoneAddressing },
 	{ 0x61, "ADC", 2, 6, Indirect_X },
 	{ 0 },
 	{ 0 },
@@ -229,11 +248,11 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0x69, "ADC", 2, 2, Immediate },
 	{ 0 },
 	{ 0 },
-	{ 0 },
+	{ 0x6C, "JMP", 3, 5, NoneAddressing }, //AddressingMode:Indirect with 6502 bug
 	{ 0x6D, "ADC", 3, 4, Absolute },
 	{ 0 },
 	{ 0 },
-	{ 0 },
+	{ 0x70, "BVS", 2, 2 /* +1 if branch succeeds +2 if to a new page */, NoneAddressing },
 	{ 0x71, "ADC", 2, 5, Indirect_Y },
 	{ 0 },
 	{ 0 },
@@ -265,7 +284,7 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0x8D, "STA", 3, 4, Absolute },
 	{ 0x8E, "STX", 3, 4, Absolute },
 	{ 0 },
-	{ 0 },
+	{ 0x90, "BCC", 2, 2 /* +1 if branch succeeds +2 if to a new page */, NoneAddressing },
 	{ 0x91, "STA", 2, 6, Indirect_Y },
 	{ 0 },
 	{ 0 },
@@ -297,7 +316,7 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0xAD, "LDA", 3, 4, Absolute },
 	{ 0xAE, "LDX", 3, 4, Absolute },
 	{ 0 },
-	{ 0 },
+	{ 0xB0, "BCS", 2, 2 /* +1 if branch succeeds +2 if to a new page */, NoneAddressing },
 	{ 0xB1, "LDA", 2, 5 /* +1 if page crossed */, Indirect_Y },
 	{ 0 },
 	{ 0 },
@@ -329,7 +348,7 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0 },
 	{ 0 },
 	{ 0 },
-	{ 0 },
+	{ 0xD0, "BNE", 2, 2 /* +1 if branch succeeds +2 if to a new page */, NoneAddressing},
 	{ 0 },
 	{ 0 },
 	{ 0 },
@@ -361,7 +380,7 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0xED, "SBC", 3, 4, Absolute },
 	{ 0 },
 	{ 0 },
-	{ 0 },
+	{ 0xF0, "BEQ", 2, 2 /* +1 if branch succeeds +2 if to a new page */, NoneAddressing },
 	{ 0xF1, "SBC", 2, 5 /* +1 if page crossed */, Indirect_Y },
 	{ 0 },
 	{ 0 },
