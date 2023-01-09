@@ -418,6 +418,58 @@ void run(CPU *cpu) {
 				bit(cpu, opcode.mode);
 			break;
 
+                	/* ASL */
+			case 0x0a:
+				asl_accumulator(cpu);
+			break;
+
+                	/* ASL */
+			case 0x06:
+			case 0x16:
+			case 0x0e:
+			case 0x1e:
+                    		asl(cpu, opcode.mode);
+			break;
+
+			/* LSR */
+			case 0x4a:
+				lsr_accumulator(cpu);
+			break;
+
+                	/* LSR */
+			case 0x46:
+			case 0x56:
+			case 0x4e:
+			case 0x5e:
+                    		lsr(cpu, opcode.mode);
+			break;
+
+			/*ROL*/
+			case 0x2a:
+				rol_accumulator(cpu);
+			break;
+
+                	/* ROL */
+			case 0x26:
+			case 0x36:
+			case 0x2e:
+			case 0x3e:
+                    		rol(cpu, opcode.mode);
+		    	break;
+
+                	/* ROR */
+			case 0x6a:
+				ror_accumulator(cpu);
+		    	break;
+
+                	/* ROR */
+			case 0x66:
+			case 0x76:
+			case 0x6e:
+			case 0x7e:
+                    		ror(cpu, opcode.mode);
+		    	break;
+
 			/* INC */
 			case 0xE6:
 			case 0xF6:
@@ -776,15 +828,121 @@ void bit(CPU *cpu, AddressingMode mode) {
 }
 
 /* Shifts */
-// TODO
-void asl_accumulator(CPU *cpu);
-void asl(CPU *cpu, AddressingMode mode);
-void lsr_accumulator(CPU *cpu);
-void lsr(CPU *cpu, AddressingMode mode);
-void rol_accumulator(CPU *cpu);
-void rol(CPU *cpu, AddressingMode mode);
-void ror_accumulator(CPU *cpu);
-void ror(CPU *cpu, AddressingMode mode);
+void asl_accumulator(CPU *cpu) {
+	uint8_t data = cpu->register_a;
+	if ((data >> 7) == 1) {
+		cpu->status |= CARRY;
+	} else {
+		cpu->status &= ~CARRY;
+	}
+	data <<= 1;
+	cpu->register_a = data;
+	update_zero_and_negative_flag(cpu, cpu->register_a);
+}
+
+uint8_t asl(CPU *cpu, AddressingMode mode) {
+	uint16_t addr = get_operand_address(cpu, mode);
+	uint8_t data = mem_read(cpu, addr);
+	if ((data >> 7) == 1) {
+		cpu->status |= CARRY;
+	} else {
+		cpu->status &= ~CARRY;
+	}
+	data <<= 1;
+	mem_write(cpu, addr, data);
+	update_zero_and_negative_flag(cpu, data);
+	return data;
+}
+
+void lsr_accumulator(CPU *cpu) {
+	uint8_t data = cpu->register_a;
+	if ((data & 1) == 1) {
+		cpu->status |= CARRY;
+	} else {
+		cpu->status &= ~CARRY;
+	}
+	data >>= 1;
+	cpu->register_a = data;
+	update_zero_and_negative_flag(cpu, cpu->register_a);
+}
+
+uint8_t lsr(CPU *cpu, AddressingMode mode) {
+	uint16_t addr = get_operand_address(cpu, mode);
+	uint8_t data = mem_read(cpu, addr);
+	if ((data & 1) == 1) {
+		cpu->status |= CARRY;
+	} else {
+		cpu->status &= ~CARRY;
+	}
+	data >>= 1;
+	mem_write(cpu, addr, data);
+	update_zero_and_negative_flag(cpu, data);
+	return data;
+}
+
+void rol_accumulator(CPU *cpu) {
+	uint8_t data = cpu->register_a;
+	uint8_t old_carry = cpu->status & CARRY;
+	if ((data >> 7) == 1) {
+		cpu->status |= CARRY;
+	} else {
+		cpu->status &= ~CARRY;
+	}
+	data <<= 1;
+	if (old_carry)
+		data |= 1;
+	cpu->register_a = data;
+	update_zero_and_negative_flag(cpu, cpu->register_a);
+}
+
+uint8_t rol(CPU *cpu, AddressingMode mode) {
+	uint16_t addr = get_operand_address(cpu, mode);
+	uint8_t data = mem_read(cpu, addr);
+	uint8_t old_carry = cpu->status & CARRY;
+	if ((data >> 7) == 1) {
+		cpu->status |= CARRY;
+	} else {
+		cpu->status &= ~CARRY;
+	}
+	data <<= 1;
+	if (old_carry)
+		data |= 1;
+	mem_write(cpu, addr, data);
+	update_zero_and_negative_flag(cpu, data);
+	return data;
+}
+
+void ror_accumulator(CPU *cpu) {
+	uint8_t data = cpu->register_a;
+	uint8_t old_carry = cpu->status & CARRY;
+	if ((data & 1) == 1) {
+		cpu->status |= CARRY;
+	} else {
+		cpu->status &= ~CARRY;
+	}
+	data >>= 1;
+	if (old_carry)
+		data |= CARRY;
+	cpu->register_a = data;
+	update_zero_and_negative_flag(cpu, cpu->register_a);
+}
+
+uint8_t ror(CPU *cpu, AddressingMode mode) {
+	uint16_t addr = get_operand_address(cpu, mode);
+	uint8_t data = mem_read(cpu, addr);
+	uint8_t old_carry = cpu->status & CARRY;
+	if ((data & 1) == 1) {
+		cpu->status |= CARRY;
+	} else {
+		cpu->status &= ~CARRY;
+	}
+	data >>= 1;
+	if (old_carry)
+		data |= CARRY;
+	mem_write(cpu, addr, data);
+	update_zero_and_negative_flag(cpu, data);
+	return data;
+}
 
 uint8_t inc(CPU *cpu, AddressingMode mode) {
 	uint16_t addr = get_operand_address(cpu, mode);
