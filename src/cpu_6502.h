@@ -53,7 +53,7 @@ typedef enum {
 
 typedef struct {
 	const uint8_t code;
-	const char mnemonic[3];
+	const char mnemonic[4];
 	const uint8_t len;
 	const uint8_t cycles;
 	const AddressingMode mode;
@@ -80,7 +80,6 @@ void reset(CPU *cpu);
 void run(CPU *cpu);
 
 void update_zero_and_negative_flag(CPU *cpu, uint8_t res);
-void inx(CPU *cpu);
 
 /* Arithmetic */
 void add_to_register_a(CPU *cpu, uint8_t data);
@@ -121,13 +120,13 @@ void txs(CPU *cpu);
 void tya(CPU *cpu);
 
 /* Branching */
+void branch(CPU *cpu, uint8_t cond);
+void bit(CPU *cpu, AddressingMode mode);
 void jmp_absolute(CPU *cpu);
 void jmp_indirect(CPU *cpu);
 void jsr(CPU *cpu);
 void rts(CPU *cpu);
 void rti(CPU *cpu);
-
-void branch(CPU *cpu, uint8_t cond);
 void bne(CPU *cpu);
 void bvs(CPU *cpu);
 void bvc(CPU *cpu);
@@ -137,8 +136,29 @@ void bcs(CPU *cpu);
 void bcc(CPU *cpu);
 void bpl(CPU *cpu);
 
-void bit(CPU *cpu, AddressingMode mode);
+/* Shifts */
+void asl_accumulator(CPU *cpu);
+void asl(CPU *cpu, AddressingMode mode);
+void lsr_accumulator(CPU *cpu);
+void lsr(CPU *cpu, AddressingMode mode);
+void rol_accumulator(CPU *cpu);
+void rol(CPU *cpu, AddressingMode mode);
+void ror_accumulator(CPU *cpu);
+void ror(CPU *cpu, AddressingMode mode);
 
+uint8_t inc(CPU *cpu, AddressingMode mode);
+void inx(CPU *cpu);
+void iny(CPU *cpu);
+uint8_t dec(CPU *cpu, AddressingMode mode);
+void dex(CPU *cpu);
+void dey(CPU *cpu);
+
+void compare(CPU *cpu, AddressingMode mode, uint8_t par);
+void cmp(CPU *cpu, AddressingMode mode);
+void cpx(CPU *cpu, AddressingMode mode);
+void cpy(CPU *cpu, AddressingMode mode);
+
+/* Lookup Tables */
 static const OPCODE opcode_lookup_table[256] = {
 	{ 0x00, "BRK", 1, 7, NoneAddressing },
 	{ 0x01, "ORA", 2, 6, Indirect_X },
@@ -150,13 +170,13 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0 },
 	{ 0x08, "PHP", 1, 3, NoneAddressing },
 	{ 0x09, "ORA", 2, 2, Immediate },
-	{ 0x10, "BPL", 2, 2 /* +1 if branch succeeds +2 if to a new page */, NoneAddressing },
+	{ 0 },
 	{ 0 },
 	{ 0 },
 	{ 0x0D, "ORA", 3, 4, Absolute },
 	{ 0 },
 	{ 0 },
-	{ 0 },
+	{ 0x10, "BPL", 2, 2 /* +1 if branch succeeds +2 if to a new page */, NoneAddressing },
 	{ 0x11, "ORA", 2, 5 /* +1 if page crossed */, Indirect_Y },
 	{ 0 },
 	{ 0 },
@@ -166,13 +186,13 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0 },
 	{ 0x18, "CLC", 1, 2, NoneAddressing },
 	{ 0x19, "ORA", 3, 4 /* +1 if page crossed */, Absolute_Y },
-	{ 0x20, "JSR", 3, 6, NoneAddressing },
+	{ 0 },
 	{ 0 },
 	{ 0 },
 	{ 0x1D, "ORA", 3, 4 /* +1 if page crossed */, Absolute_X },
 	{ 0 },
 	{ 0 },
-	{ 0 },
+	{ 0x20, "JSR", 3, 6, NoneAddressing },
 	{ 0x21, "AND", 2, 6, Indirect_X },
 	{ 0 },
 	{ 0 },
@@ -216,7 +236,7 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0x49, "EOR", 2, 2, Immediate },
 	{ 0 },
 	{ 0 },
-	{ 0x4C, "JMP", 3, 3, NoneAddressing }, //AddressingMode that acts as Immidiate
+	{ 0x4C, "JMP", 3, 3, NoneAddressing }, //AddressingMode that acts as Immediate
 	{ 0x4D, "EOR", 3, 4, Absolute },
 	{ 0 },
 	{ 0 },
@@ -276,7 +296,7 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0x85, "STA", 2, 3, ZeroPage },
 	{ 0x86, "STX", 2, 3, ZeroPage },
 	{ 0 },
-	{ 0 },
+	{ 0x88, "DEY", 1, 2, NoneAddressing },
 	{ 0 },
 	{ 0x8A, "TXA", 1, 2, NoneAddressing },
 	{ 0 },
@@ -332,53 +352,53 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0xBD, "LDA", 3, 4 /* +1 if page crossed */, Absolute_X },
 	{ 0xBE, "LDX", 3, 4 /* +1 if page crossed */, Absolute_Y },
 	{ 0 },
+	{ 0xC0, "CPX", 2, 2, Immediate },
+	{ 0xC1, "CMP", 2, 6, Indirect_X },
 	{ 0 },
 	{ 0 },
+	{ 0xC4, "CPX", 2, 3, ZeroPage },
+	{ 0xC5, "CMP", 2, 3, ZeroPage },
+	{ 0xC6, "DEC", 2, 5, ZeroPage },
 	{ 0 },
+	{ 0xC8, "INY", 1, 2, NoneAddressing },
+	{ 0xC9, "CMP", 2, 2, Immediate },
+	{ 0xCA, "DEX", 1, 2, NoneAddressing },
 	{ 0 },
-	{ 0 },
-	{ 0 },
-	{ 0 },
-	{ 0 },
-	{ 0 },
-	{ 0 },
-	{ 0 },
-	{ 0 },
-	{ 0 },
-	{ 0 },
-	{ 0 },
+	{ 0xCC, "CPX", 3, 4, Absolute },
+	{ 0xCD, "CMP", 3, 4, Absolute },
+	{ 0xCE, "DEC", 3, 6, Absolute },
 	{ 0 },
 	{ 0xD0, "BNE", 2, 2 /* +1 if branch succeeds +2 if to a new page */, NoneAddressing},
+	{ 0xD1, "CMP", 2, 5 /* +1 if page crossed */, Absolute_Y },
 	{ 0 },
 	{ 0 },
 	{ 0 },
-	{ 0 },
-	{ 0 },
-	{ 0 },
+	{ 0xD5, "CMP", 2, 4, ZeroPage_X },
+	{ 0xD6, "DEC", 2, 6, ZeroPage_X },
 	{ 0 },
 	{ 0xD8, "CLD", 1, 2, NoneAddressing },
+	{ 0xD9, "CMP", 3, 4 /* +1 if page crossed */, Absolute_Y },
 	{ 0 },
 	{ 0 },
 	{ 0 },
+	{ 0xDD, "CMP", 3, 4 /* +1 if page crossed */, Absolute_X },
+	{ 0xDE, "DEC", 3, 7, Absolute_X },
 	{ 0 },
-	{ 0 },
-	{ 0 },
-	{ 0 },
-	{ 0 },
+	{ 0xE0, "CPY", 2, 2, Immediate },
 	{ 0xE1, "SBC", 2, 6, Indirect_X },
 	{ 0 },
 	{ 0 },
-	{ 0 },
+	{ 0xE4, "CPY", 2, 3, ZeroPage },
 	{ 0xE5, "SBC", 2, 3, ZeroPage },
-	{ 0 },
+	{ 0xE6, "INC", 2, 5, ZeroPage },
 	{ 0 },
 	{ 0xE8, "INX", 1, 2, NoneAddressing },
 	{ 0xE9, "SBC", 2, 2, Immediate },
 	{ 0xEA, "NOP", 1, 2, NoneAddressing },
 	{ 0 },
-	{ 0 },
+	{ 0xEC, "CPY", 3, 4, Absolute },
 	{ 0xED, "SBC", 3, 4, Absolute },
-	{ 0 },
+	{ 0xEE, "INC", 3, 6, Absolute },
 	{ 0 },
 	{ 0xF0, "BEQ", 2, 2 /* +1 if branch succeeds +2 if to a new page */, NoneAddressing },
 	{ 0xF1, "SBC", 2, 5 /* +1 if page crossed */, Indirect_Y },
@@ -386,7 +406,7 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0 },
 	{ 0 },
 	{ 0xF5, "SBC", 2, 4, ZeroPage_X },
-	{ 0 },
+	{ 0xF6, "INC", 2, 6, ZeroPage_X },
 	{ 0 },
 	{ 0xF8, "SED", 1, 2, NoneAddressing },
 	{ 0xF9, "SBC", 3, 4 /* +1 if page crossed */, Absolute_Y },
@@ -394,6 +414,6 @@ static const OPCODE opcode_lookup_table[256] = {
 	{ 0 },
 	{ 0 },
 	{ 0xFD, "SBC", 3, 4 /* +1 if page crossed */, Absolute_X },
-	{ 0 },
+	{ 0xFE, "INC", 3, 7, Absolute_X },
 	{ 0 },
 };

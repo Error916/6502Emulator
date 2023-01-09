@@ -418,9 +418,66 @@ void run(CPU *cpu) {
 				bit(cpu, opcode.mode);
 			break;
 
+			/* INC */
+			case 0xE6:
+			case 0xF6:
+			case 0xEE:
+			case 0xFE:
+				inc(cpu, opcode.mode);
+			break;
+
 			/* INX */
 			case 0xE8:
 				inx(cpu);
+			break;
+
+			/* INY */
+			case 0xC8:
+				inx(cpu);
+			break;
+
+			/* DEC */
+			case 0xc6:
+			case 0xd6 :
+			case 0xce:
+			case 0xde:
+			    	dec(cpu, opcode.mode);
+			break;
+
+			/* DEX */
+			case 0xca:
+				dex(cpu);
+			break;
+
+			/* DEY */
+			case 0x88:
+				dey(cpu);
+			break;
+
+			/* CMP */
+			case 0xc9:
+			case 0xc5:
+			case 0xd5:
+			case 0xcd:
+			case 0xdd:
+			case 0xd9:
+			case 0xc1:
+			case 0xd1:
+			    	cmp(cpu, opcode.mode);
+			break;
+
+			/* CPX */
+			case 0xe0:
+			case 0xe4:
+			case 0xec:
+			    	cpx(cpu, opcode.mode);
+			break;
+
+			/* CPY */
+			case 0xc0:
+			case 0xc4:
+			case 0xcc:
+			    	cpy(cpu, opcode.mode);
 			break;
 
 			/* NOP */
@@ -454,11 +511,6 @@ void update_zero_and_negative_flag(CPU *cpu, uint8_t res) {
 	} else {
 		cpu->status &= ~NEGATIV;
 	}
-}
-
-void inx(CPU *cpu) {
-	cpu->register_x += 1;
-	update_zero_and_negative_flag(cpu, cpu->register_x);
 }
 
 /* Arithmetic */
@@ -721,4 +773,80 @@ void bit(CPU *cpu, AddressingMode mode) {
 
 	if (data & NEGATIV) cpu->status |= NEGATIV;
 	if (data & OVERFLOW) cpu->status |= OVERFLOW;
+}
+
+/* Shifts */
+// TODO
+void asl_accumulator(CPU *cpu);
+void asl(CPU *cpu, AddressingMode mode);
+void lsr_accumulator(CPU *cpu);
+void lsr(CPU *cpu, AddressingMode mode);
+void rol_accumulator(CPU *cpu);
+void rol(CPU *cpu, AddressingMode mode);
+void ror_accumulator(CPU *cpu);
+void ror(CPU *cpu, AddressingMode mode);
+
+uint8_t inc(CPU *cpu, AddressingMode mode) {
+	uint16_t addr = get_operand_address(cpu, mode);
+	uint8_t data = mem_read(cpu, addr);
+	data += 1;
+	mem_write(cpu, addr, data);
+	update_zero_and_negative_flag(cpu, data);
+
+	return data;
+}
+
+void inx(CPU *cpu) {
+	cpu->register_x += 1;
+	update_zero_and_negative_flag(cpu, cpu->register_x);
+}
+
+void iny(CPU *cpu) {
+	cpu->register_y += 1;
+	update_zero_and_negative_flag(cpu, cpu->register_y);
+}
+
+uint8_t dec(CPU *cpu, AddressingMode mode) {
+	uint16_t addr = get_operand_address(cpu, mode);
+	uint8_t data = mem_read(cpu, addr);
+	data -= 1;
+	mem_write(cpu, addr, data);
+	update_zero_and_negative_flag(cpu, data);
+
+	return data;
+}
+
+void dex(CPU *cpu) {
+	cpu->register_x -= 1;
+	update_zero_and_negative_flag(cpu, cpu->register_x);
+}
+
+void dey(CPU *cpu) {
+	cpu->register_y -= 1;
+	update_zero_and_negative_flag(cpu, cpu->register_y);
+}
+
+void compare(CPU *cpu, AddressingMode mode, uint8_t par) {
+	uint16_t addr = get_operand_address(cpu, mode);
+	uint8_t data = mem_read(cpu, addr);
+
+	if (data <= par) {
+		cpu->status |= CARRY;
+	} else {
+		cpu->status &= ~CARRY;
+	}
+
+	update_zero_and_negative_flag(cpu, par - data);
+}
+
+void cmp(CPU *cpu, AddressingMode mode) {
+	compare(cpu, mode, cpu->register_a);
+}
+
+void cpx(CPU *cpu, AddressingMode mode) {
+	compare(cpu, mode, cpu->register_x);
+}
+
+void cpy(CPU *cpu, AddressingMode mode) {
+	compare(cpu, mode, cpu->register_y);
 }
