@@ -3,5 +3,5 @@ LIBS=
 SRC=src/main.c src/cpu_6502.c
 CC=gcc
 
-dupfinder: $(SRC)
+emu: $(SRC)
 	$(CC) $(CFLAGS) -o emu $(SRC) $(LIBS)
